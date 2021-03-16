@@ -36,7 +36,7 @@ parfor i=1:IDs_length
     UniProtURL = ['https://www.uniprot.org/uniprot/' IDs{i} '.txt'];
     txt = webread(UniProtURL); 
     
-    UniProtData = regexp(txt, 'EC=(?<ECNumbers>[0-9.]*)','names');
+    UniProtData = regexp(txt, 'DE[ ]*EC=(?<ECNumbers>([0-9]+.([0-9]+.)*([0-9]|-)+))','names');
     
     if not(isempty(UniProtData))
        ProteinECNumbers{i} = reshape(struct2cell(UniProtData), numel(UniProtData), 1);
