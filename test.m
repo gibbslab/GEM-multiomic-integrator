@@ -8,10 +8,9 @@ changeCobraSolver('glpk', 'all');
 abundance = readtable('sup_material_9.xlsx');
 load('Recon3D_301.mat')
 
-%% Get the list of ProteinECNumbers
-ProteinECNumbers = mapAbundanceToReactions(Recon3D, abundance);
-save('ProteinECNumbers.mat', 'ProteinECNumbers')
-% load('ProteinECNumbers.mat')
+%% Find out how many reactions have a EC Numer asociated
+N_filled = find(~cellfun(@isempty,Recon3D.rxnECNumbers));
+percent_of_filled = length(N_filled)/length(Recon3D.rxnECNumbers);
 
-% How matches in simple cell lists
-find(strcmp(Recon3D.rxnECNumbers, '1.4.3.6'));
+%% Get reactions abundances
+rxn_abundances = mapAbundanceToReactions(Recon3D, abundance);

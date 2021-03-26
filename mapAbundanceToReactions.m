@@ -1,21 +1,42 @@
-function ProteinECNumbers = mapAbundanceToReactions(model, abundance)
+function result = mapAbundanceToReactions(model, abundance)
 %MAPABUNDANCETOREACTIONS This function maps the protein abundances to 
 % the reactions in the model.
 
 
 %% 1. Get the list of ProteinECNumbers
-ProteinECNumbers = getProteinCodes(abundance);
+% Maybe we can check if the proteins are already downloaded to not do that
+% again
+% ProteinECNumbers = getProteinCodes(abundance);
+% save('ProteinECNumbers.mat', 'ProteinECNumbers')
+load('ProteinECNumbers.mat')
 
-
-
-
-%% 3. Tomar rxnECNumbers formatear bien 
+%% 2. Take rxnECNumbers and format correctly 
 % .rxnECNumbers ; = & or = | .- = all in the subgroup
-% añadir parentesis al rededor de cada uno x(number)
 
+%% 3. Find matches between model and abundance
+ECNumbers = regexp(model.rxnECNumbers, '\<(?!EC:|^\>)([0-9.\-]*)','match');
+ECNumbersLogic = regexp(model.rxnECNumbers, '( or | ;)','match');
 
+rxn_n = numel(ECNumbers);
+result = cell (rxn_n, 1);
+for i=1:rxn_n
+    ReactionAbundance = 0;
+    for j=1:numel(ECNumbers{i})
+        % look for the EC number in the proteome
+        matches = cellfun(@(x) strcmp(x, ECNumbers{i}{j}), ProteinECNumbers, 'UniformOutput', false);
+        FirstIntex = cellfun(@(c) any(c(:)), matches);
+        IDs = {abundance.ID{FirstIntex}};
+        Abundances = str2double({abundance.Control_NHA1_veh_tech2{FirstIntex}});
+        [AbundanceSumary, index] = max(Abundances);
+        AbundaceIndex = FirstIntex(index);
+        
 %% 4 and = min,  or = max
-
+        % Now we have the protein abundance
+        % We need to check wether the logic is and/or to use min/max
+        ReactionAbundance = max(ReactionAbundance, AbundanceSumary);
+    end
+    result{i} =  ReactionAbundance;
+end
 
 end
 
