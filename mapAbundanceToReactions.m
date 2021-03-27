@@ -15,6 +15,9 @@ end
 
 %% 2. Take rxnECNumbers and format correctly 
 % .rxnECNumbers ; = & or = | .- = all in the subgroup
+Recon3D.rxnECNumbers = strrep(Recon3D.rxnECNumbers,";"," & ");
+Recon3D.rxnECNumbers = strrep(Recon3D.rxnECNumbers,"or","|");
+Recon3D.rxnECNumbers = strrep(Recon3D.rxnECNumbers,".-","all");
 
 %% 3. Find matches between model and abundance
 ECNumbers = regexp(model.rxnECNumbers, '\<(?!EC:|^\>)([0-9.\-]*)','match');
