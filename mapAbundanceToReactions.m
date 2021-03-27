@@ -6,9 +6,12 @@ function result = mapAbundanceToReactions(model, abundance)
 %% 1. Get the list of ProteinECNumbers
 % Maybe we can check if the proteins are already downloaded to not do that
 % again
-% ProteinECNumbers = getProteinCodes(abundance);
-% save('ProteinECNumbers.mat', 'ProteinECNumbers')
-load('ProteinECNumbers.mat')
+if isfile('ProteinECNumbers.mat')
+    load('ProteinECNumbers.mat');
+else
+    ProteinECNumbers = getProteinCodes(abundance);
+    save('ProteinECNumbers.mat', 'ProteinECNumbers');
+end
 
 %% 2. Take rxnECNumbers and format correctly 
 % .rxnECNumbers ; = & or = | .- = all in the subgroup
