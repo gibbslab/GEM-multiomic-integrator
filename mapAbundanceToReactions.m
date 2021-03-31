@@ -41,8 +41,8 @@ for i=1:rxn_n
         % look for the EC number in the proteome
         matches = cellfun(@(x) strcmp(x, ECNumbers{i}{j}), ProteinECNumbers, 'UniformOutput', false);
         FirstIntex = cellfun(@(c) any(c(:)), matches);
-        IDs = {abundance.ID{FirstIntex}};
-        Abundances = str2double({abundance.Control_NHA1_veh_tech2{FirstIntex}});
+        IDs = abundance.ID(FirstIntex);
+        Abundances = str2double(abundance.Control_NHA1_veh_tech2(FirstIntex));
         [AbundanceSumary, index] = max(Abundances);
         AbundaceIndex = FirstIntex(index);
         
