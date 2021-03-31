@@ -16,16 +16,17 @@ end
 %% 2. Take rxnECNumbers and format correctly 
 % .rxnECNumbers ; = & or = | .- = all in the subgroup
 model.rxnECNumbers = strrep(model.rxnECNumbers,";"," & ");
+model.rxnECNumbers = strrep(model.rxnECNumbers,","," & ");
 model.rxnECNumbers = strrep(model.rxnECNumbers,"or","|");
 % model.rxnECNumbers = strrep(model.rxnECNumbers,".-","all");
 model.rxnECNumbers = strrep(model.rxnECNumbers,"EC:","");
 model.rxnECNumbers = strrep(model.rxnECNumbers,"TCDB:","");
 
 %% 3. Find matches between model and abundance
-ECNumbers = regexp(model.rxnECNumbers, '\<(?!EC:|^\>)([0-9.\-]*)','match');
-ECNumbersLogic = regexp(model.rxnECNumbers, '( or | ;)','match');
+rxnECNumbers = regexp(model.rxnECNumbers, '\<(?!EC:|^\>)([0-9A-Z]+.([0-9A-Z]+.)*([0-9A-Z]|-)+)','match');
+rxnECNumbersLogic = regexp(model.rxnECNumbers, '(\||&)','match');
 
-rxn_n = numel(ECNumbers);
+rxn_n = numel(rxnECNumbers);
 result = cell (rxn_n, 1);
 
 f = waitbar(0,'Procesing','Name','Progress',...
@@ -36,22 +37,31 @@ setappdata(f,'canceling',0);
 
 for i=1:rxn_n
     waitbar(i/rxn_n,f,sprintf('%12.0f',floor(i/rxn_n*100)))
-    ReactionAbundance = 0;
-    for j=1:numel(ECNumbers{i})
-        % look for the EC number in the proteome
-        matches = cellfun(@(x) strcmp(x, ECNumbers{i}{j}), ProteinECNumbers, 'UniformOutput', false);
-        FirstIntex = cellfun(@(c) any(c(:)), matches);
-        IDs = abundance.ID(FirstIntex);
-        Abundances = str2double(abundance.Control_NHA1_veh_tech2(FirstIntex));
-        [AbundanceSumary, index] = max(Abundances);
-        AbundaceIndex = FirstIntex(index);
-        
-%% 4 and = min,  or = max
-        % Now we have the protein abundance
-        % We need to check wether the logic is and/or to use min/max
-        ReactionAbundance = max(ReactionAbundance, AbundanceSumary);
+    if numel(rxnECNumbers{i})>1
+        disp('multiple enzymes required')
     end
-    result{i} =  ReactionAbundance;
+    [Abundance, index] = findAbundances(rxnECNumbers{i}, ProteinECNumbers, abundance.Control_NHA1_veh_tech2);
+    IDs = abundance.ID(index(index > 1));
+
+%% 4 and = min,  or = max
+    % Now we have the protein abundance
+    % We need to check wether the logic is and/or to use min/max
+    nLogic = numel(rxnECNumbersLogic{i});
+    nEnzyme = numel(rxnECNumbers{i});
+    if nEnzyme > 1
+        assert(nEnzyme - 1 == nLogic, 'Wrong logic separator for multiple enzymes in model.rxnECNumbers{%i}:%s' ,i ,model.rxnECNumbers{i});
+
+        rxnAbundance = Abundance(1);
+        for j=1:nLogic
+            if rxnECNumbersLogic{i}{j} == '&'
+                rxnAbundance = min(rxnAbundance, Abundance(j + 1));
+            elseif rxnECNumbersLogic{i}{j} == '|'
+                rxnAbundance = max(rxnAbundance, Abundance(j + 1));
+            end
+        end
+
+        result{i} =  rxnAbundance;
+    end
 end
 delete(f)
 end
@@ -92,5 +102,24 @@ toc;
 
 end
 
+function [abundance, index] = findAbundances(rxnECNumbers, ProteinECNumbers, ProteinAbundance)
+nEnzymeNumbers = numel(rxnECNumbers);
+abundance = zeros(nEnzymeNumbers, 1);
+index = zeros(nEnzymeNumbers, 1);
 
+for i=1:nEnzymeNumbers
+    %% Find matches
+    found = cellfun(@(x) strcmp(x, rxnECNumbers{i}), ProteinECNumbers, 'UniformOutput', false);
+    match = cellfun(@(c) any(c(:)), found);
+    %% If there is a match get its info
+    if sum(match) > 0
+        % IDs = abundance.ID(matches);
+        matchInexes = find(match);
+        abundances = str2double(ProteinAbundance(match));
+        [abundance(i), localIndex] = max(abundances);
+        index(i) = matchInexes(localIndex);
+    end
+end 
+
+end
 
