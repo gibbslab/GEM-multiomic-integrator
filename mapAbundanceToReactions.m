@@ -15,9 +15,11 @@ end
 
 %% 2. Take rxnECNumbers and format correctly 
 % .rxnECNumbers ; = & or = | .- = all in the subgroup
-Recon3D.rxnECNumbers = strrep(Recon3D.rxnECNumbers,";"," & ");
-Recon3D.rxnECNumbers = strrep(Recon3D.rxnECNumbers,"or","|");
-Recon3D.rxnECNumbers = strrep(Recon3D.rxnECNumbers,".-","all");
+model.rxnECNumbers = strrep(model.rxnECNumbers,";"," & ");
+model.rxnECNumbers = strrep(model.rxnECNumbers,"or","|");
+% model.rxnECNumbers = strrep(model.rxnECNumbers,".-","all");
+model.rxnECNumbers = strrep(model.rxnECNumbers,"EC:","");
+model.rxnECNumbers = strrep(model.rxnECNumbers,"TCDB:","");
 
 %% 3. Find matches between model and abundance
 ECNumbers = regexp(model.rxnECNumbers, '\<(?!EC:|^\>)([0-9.\-]*)','match');
@@ -25,7 +27,15 @@ ECNumbersLogic = regexp(model.rxnECNumbers, '( or | ;)','match');
 
 rxn_n = numel(ECNumbers);
 result = cell (rxn_n, 1);
+
+f = waitbar(0,'Procesing','Name','Progress',...
+    'CreateCancelBtn',...
+    'setappdata(gcbf,''canceling'',1)');
+
+setappdata(f,'canceling',0);
+
 for i=1:rxn_n
+    waitbar(i/rxn_n,f,sprintf('%12.0f',floor(i/rxn_n*100)))
     ReactionAbundance = 0;
     for j=1:numel(ECNumbers{i})
         % look for the EC number in the proteome
@@ -43,7 +53,7 @@ for i=1:rxn_n
     end
     result{i} =  ReactionAbundance;
 end
-
+delete(f)
 end
 
 
