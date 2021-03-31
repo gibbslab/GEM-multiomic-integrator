@@ -1,4 +1,4 @@
-clear variables; clc
+close all force; clear variables; clc
 %% Startup the COBRA Toolbox
 addpath('/home/nico/Documentos/UNAL/Tesis/COBRA/cobratoolbox','-end')
 initCobraToolbox(false) % Don't update the toolbox
