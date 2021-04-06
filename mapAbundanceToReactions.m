@@ -38,9 +38,6 @@ setappdata(f,'canceling',0);
 
 for i=1:rxn_n
     waitbar(i/rxn_n,f,sprintf('%12.0f',floor(i/rxn_n*100)))
-    if numel(rxnECNumbers{i})>1
-        disp('multiple enzymes required')
-    end
     [Abundance, index] = findAbundances(rxnECNumbers{i}, ProteinECNumbers, abundance.Control_NHA1_veh_tech2);
     IDs = abundance.ID(index(index > 1));
 
@@ -114,7 +111,6 @@ for i=1:nEnzymeNumbers
     match = cellfun(@(c) any(c(:)), found);
     %% If there is a match get its info
     if sum(match) > 0
-        % IDs = abundance.ID(matches);
         matchInexes = find(match);
         abundances = str2double(ProteinAbundance(match));
         [abundance(i), localIndex] = max(abundances);
