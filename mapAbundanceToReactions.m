@@ -15,6 +15,7 @@ end
 
 %% 2. Take rxnECNumbers and format correctly 
 % .rxnECNumbers ; = & or = | .- = all in the subgroup
+model.rxnECNumbers = regexprep(model.rxnECNumbers,";$","");
 model.rxnECNumbers = strrep(model.rxnECNumbers,";"," & ");
 model.rxnECNumbers = strrep(model.rxnECNumbers,","," & ");
 model.rxnECNumbers = strrep(model.rxnECNumbers,"or","|");
