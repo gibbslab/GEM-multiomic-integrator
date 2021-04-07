@@ -109,9 +109,16 @@ abundance = zeros(nEnzymeNumbers, 1);
 index = zeros(nEnzymeNumbers, 1);
 
 for i=1:nEnzymeNumbers
+    rxnECNumber = rxnECNumbers{i};
     %% Find matches
-    found = cellfun(@(x) strcmp(x, rxnECNumbers{i}), ProteinECNumbers, 'UniformOutput', false);
+    if ~contains(rxnECNumbers{i}, ".-")
+        found = cellfun(@(x) strcmp(x, rxnECNumber), ProteinECNumbers, 'UniformOutput', false);
     match = cellfun(@(c) any(c(:)), found);
+    else
+        rxnECNumber = strrep(rxnECNumber, '.-', '.');
+        found = cellfun(@(x) contains(x, rxnECNumber), ProteinECNumbers, 'UniformOutput', false);
+        match = cellfun(@(c) any(c(:)), found);
+    end
     %% If there is a match get its info
     if sum(match) > 0
         matchInexes = find(match);
