@@ -59,7 +59,10 @@ for i=1:rxn_n
         end
 
         result{i} =  rxnAbundance;
+    elseif nEnzyme == 1 && Abundance ~= 0
+        result{i} = Abundance;
     end
+    
 end
 delete(f)
 end
