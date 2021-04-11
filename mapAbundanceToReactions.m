@@ -1,31 +1,10 @@
-function result = mapAbundanceToReactions(model, abundance)
+function result = mapAbundanceToReactions(modelECNumbers, ProteinECNumbers, ProteinAbundance)
 %MAPABUNDANCETOREACTIONS This function maps the protein abundances to 
 % the reactions in the model.
 
-
-%% 1. Get the list of ProteinECNumbers
-% Maybe we can check if the proteins are already downloaded to not do that
-% again
-if isfile('ProteinECNumbers.mat')
-    load('ProteinECNumbers.mat');
-else
-    ProteinECNumbers = getProteinCodes(abundance);
-    save('ProteinECNumbers.mat', 'ProteinECNumbers');
-end
-
-%% 2. Take rxnECNumbers and format correctly 
-% .rxnECNumbers ; = & or = | .- = all in the subgroup
-model.rxnECNumbers = regexprep(model.rxnECNumbers,";$","");
-model.rxnECNumbers = strrep(model.rxnECNumbers,";"," & ");
-model.rxnECNumbers = strrep(model.rxnECNumbers,","," & ");
-model.rxnECNumbers = strrep(model.rxnECNumbers,"or","|");
-% model.rxnECNumbers = strrep(model.rxnECNumbers,".-","all");
-model.rxnECNumbers = strrep(model.rxnECNumbers,"EC:","");
-model.rxnECNumbers = strrep(model.rxnECNumbers,"TCDB:","");
-
 %% 3. Find matches between model and abundance
-rxnECNumbers = regexp(model.rxnECNumbers, '\<(?!EC:|^\>)([0-9A-Z]+.([0-9A-Z]+.)*([0-9A-Z]|-)+)','match');
-rxnECNumbersLogic = regexp(model.rxnECNumbers, '(\||&)','match');
+rxnECNumbers = regexp(modelECNumbers, '\<(?!EC:|^\>)([0-9A-Z]+.([0-9A-Z]+.)*([0-9A-Z]|-)+)','match');
+rxnECNumbersLogic = regexp(modelECNumbers, '(\||&)','match');
 
 rxn_n = numel(rxnECNumbers);
 result = cell (rxn_n, 1);
@@ -38,8 +17,7 @@ setappdata(f,'canceling',0);
 
 for i=1:rxn_n
     waitbar(i/rxn_n,f,sprintf('%12.0f',floor(i/rxn_n*100)))
-    [Abundance, index] = findAbundances(rxnECNumbers{i}, ProteinECNumbers, abundance.Control_NHA1_veh_tech2);
-    IDs = abundance.ID(index(index > 1));
+    [Abundance, index] = findAbundances(rxnECNumbers{i}, ProteinECNumbers, ProteinAbundance);
 
 %% 4 and = min,  or = max
     % Now we have the protein abundance
@@ -47,7 +25,7 @@ for i=1:rxn_n
     nLogic = numel(rxnECNumbersLogic{i});
     nEnzyme = numel(rxnECNumbers{i});
     if nEnzyme > 1
-        assert(nEnzyme - 1 == nLogic, 'Wrong logic separator for multiple enzymes in model.rxnECNumbers{%i}:%s' ,i ,model.rxnECNumbers{i});
+        assert(nEnzyme - 1 == nLogic, 'Wrong logic separator for multiple enzymes in model.rxnECNumbers{%i}:%s', i, modelECNumbers{i});
 
         rxnAbundance = Abundance(1);
         for j=1:nLogic
