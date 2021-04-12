@@ -1,6 +1,5 @@
 close all force; clear variables; clc
 %% Startup the COBRA Toolbox
-addpath('/home/nico/Documentos/UNAL/Tesis/COBRA/cobratoolbox','-end')
 initCobraToolbox(false) % Don't update the toolbox
 changeCobraSolver('glpk', 'all');
 
@@ -30,4 +29,50 @@ N_filled = find(~cellfun(@isempty,Recon3D.rxnECNumbers));
 percent_of_filled = length(N_filled)/length(Recon3D.rxnECNumbers);
 
 %% Get reactions abundances
-rxn_abundances = mapAbundanceToReactions(Recon3D.rxnECNumbers, ProteinECNumbers, abundance.Control_NHA1_veh_tech2);
+abundance_columns =abundance.Properties.VariableNames;
+FinalAbundances = table();
+ for k=2:length(abundance_columns)
+    rxn_abundances = mapAbundanceToReactions(Recon3D.rxnECNumbers, ProteinECNumbers, abundance.(k));
+    FinalAbundances = addvars(FinalAbundances, rxn_abundances);
+ end
+ 
+expresion = readtable('DESeq2_normalised_counts.xls');
+%% 1. Convert Ensembl to Entrez with https://www.ensembl.org/biomart/martview
+f = fopen('mart_export.txt');
+C = textscan(f, '%s %s', 'HeaderLines', 1);
+fclose(f);
+EnsemblIDs = regexprep(expresion.(1),"\.[0-9]*","");
+EnrezIDs = cell(numel(EnsemblIDs), 1);
+for i=1:numel(EnsemblIDs)
+    match = strcmp(C{1},EnsemblIDs(i));
+    if sum(match) > 0
+        EnrezIDs{i} = C{2}{match};
+    end
+end
+expresion = addvars(expresion, EnrezIDs, 'After', 1);
+
+
+
+%% 2. Extract expresions for each reaction
+
+Recon3D.genes = regexprep(Recon3D.genes,"\.[0-9]*","");
+
+expresion_columns = expresion.Properties.VariableNames;
+expressionRxns1 = cell(length(expresion_columns) - 2, 1);
+FinalExpresion = table();
+for k=3:length(expresion_columns)
+    expressionToMap =  expresion(:, [2 k]);
+    expressionToMap.Properties.VariableNames = {'gene' 'value'};
+    expressionToMap.gene(cellfun('isempty', expressionToMap.gene)) = {' '};
+    [expressionRxns parsedGPR] = mapExpressionToReactions(Recon3D, expressionToMap);
+    FinalExpresion = addvars(FinalExpresion, expressionRxns);
+end
+
+
+exVal = FinalExpresion{40,[6 7 16 17 26 27]};
+abVal = FinalAbundances(44,[8 9 10 11 12 13]);
+abVal =  [27.4479 27.3967 27.2953 27.8241 27.5015 27.5533]
+scatter(exVal([1 2]), abVal([1 2]))
+hold on
+scatter(exVal([3 4]), abVal([3 4]))
+scatter(exVal([5 6]), abVal([5 6]))

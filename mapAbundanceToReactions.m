@@ -56,7 +56,7 @@ for i=1:nEnzymeNumbers
     %% Find matches
     if ~contains(rxnECNumbers{i}, ".-")
         found = cellfun(@(x) strcmp(x, rxnECNumber), ProteinECNumbers, 'UniformOutput', false);
-    match = cellfun(@(c) any(c(:)), found);
+        match = cellfun(@(c) any(c(:)), found);
     else
         rxnECNumber = strrep(rxnECNumber, '.-', '.');
         found = cellfun(@(x) contains(x, rxnECNumber), ProteinECNumbers, 'UniformOutput', false);
