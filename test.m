@@ -76,7 +76,7 @@ for k=3:length(expresion_columns)
     FinalExpresion = addvars(FinalExpresion, expressionRxns);
 end
 FinalExpresion.Properties.VariableNames = expresion.Properties.VariableNames(3:end);
-FinalAbundances.Properties.VariableNames = abundance.Properties.VariableNames(2:end);
+FinalAbundances.Properties.VariableNames = abundance.Properties.VariableNames(3:end);
 
 exVal = FinalExpresion{40,[6 7 16 17 26 27]};
 abVal = FinalAbundances(44,[8 9 10 11 12 13]);
