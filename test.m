@@ -41,7 +41,7 @@ for k=3:length(abundance.Properties.VariableNames)
     abundanceToMap = abundanceToMap(~cellfun('isempty', abundanceToMap.id), :);
     
     [abundanceRxns parsedPR] = mapAbundanceToReactions(Recon3D, abundanceToMap);
-    FinalExpresion = addvars(FinalExpresion, abundanceRxns);
+    FinalAbundances = addvars(FinalAbundances, abundanceRxns);
 end
 
 expresion = readtable('DESeq2_normalised_counts.xls');
