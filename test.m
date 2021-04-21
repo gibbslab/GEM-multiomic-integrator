@@ -28,15 +28,22 @@ Recon3D.rxnECNumbers = strrep(Recon3D.rxnECNumbers,"TCDB:","");
 N_filled = find(~cellfun(@isempty,Recon3D.rxnECNumbers));
 percent_of_filled = length(N_filled)/length(Recon3D.rxnECNumbers);
 
-%% Get reactions abundances
-abundance_columns =abundance.Properties.VariableNames;
+%% Map reactions abundances
+
 FinalAbundances = table();
- for k=2:length(abundance_columns)
-%     abundance.(k) = str2double(abundance.(k));
-    rxn_abundances = mapAbundanceToReactions(Recon3D.rxnECNumbers, ProteinECNumbers, abundance.(k));
-    FinalAbundances = addvars(FinalAbundances, rxn_abundances);
- end
- 
+abundance = addvars(abundance, ProteinECNumbers, 'After', 1);
+for k=3:length(abundance.Properties.VariableNames)
+    abundanceToMap =  abundance(:, [2 k]);
+    abundanceToMap.Properties.VariableNames = {'id' 'value'};
+    
+    % Remove missing values
+    abundanceToMap = rmmissing(abundanceToMap);
+    abundanceToMap = abundanceToMap(~cellfun('isempty', abundanceToMap.id), :);
+    
+    [abundanceRxns parsedPR] = mapAbundanceToReactions(Recon3D, abundanceToMap);
+    FinalExpresion = addvars(FinalExpresion, abundanceRxns);
+end
+
 expresion = readtable('DESeq2_normalised_counts.xls');
 %% 1. Convert Ensembl to Entrez with https://www.ensembl.org/biomart/martview
 f = fopen('mart_export.txt');

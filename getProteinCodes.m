@@ -9,7 +9,7 @@ ProteinECNumbers = cell(IDs_length, 1);
 
 f = waitbar(0,'Please wait...');
 
-parfor i=1:IDs_length
+for i=1:IDs_length
     UniProtURL = ['https://www.uniprot.org/uniprot/' IDs{i} '.txt'];
     txt = webread(UniProtURL); 
     

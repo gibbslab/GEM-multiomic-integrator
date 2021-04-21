@@ -1,81 +1,65 @@
-function result = mapAbundanceToReactions(modelECNumbers, ProteinECNumbers, ProteinAbundance)
-%MAPABUNDANCETOREACTIONS This function maps the protein abundances to 
-% the reactions in the model.
+function [abundanceRxns, parsedPR, proteins_used, signifRxns] = mapAbundanceToReactions(model, abundanceData, minSum)                                          
+% Determines the expression data associated to each reaction present in
+% the model 
+%
+% USAGE:
+%
+%    [expressionRxns parsedGPR, gene_used] = mapExpressionToReactions(model, expressionData) 
+%    [expressionRxns, parsedGPR, gene_used, signifRxns] =  mapExpressionToReactions(model, expressionData, minSum)
+%
+% INPUTS:
+%	model                   model strusture
+%	expressionData          mRNA expression data structure
+%       .gene               	cell array containing GeneIDs in the same
+%                               format as model.genes
+%       .value                  Vector containing corresponding expression
+%                               value (FPKM/RPKM)
+%       .sig:               [optional field] Vector containing significance values of
+%                           expression corresponding to expression values in
+%                           expressionData.value (ex. p-values)
+%
+% OPTIONAL INPUT:
+%    minSum:         instead of using min and max, use min for AND and Sum
+%                    for OR (default: false, i.e. use min)
+%
+% OUTPUTS:
+%   expressionRxns:         reaction expression, corresponding to model.rxns.
+%   parsedGPR:              cell matrix containing parsed GPR rule
+%   gene_used:              gene identifier, corresponding to model.rxns, from GPRs
+%                           whose value (expression and/or significance) was chosen for that
+%                           reaction
+%
+% OPTIONAL OUTPUTS:
+%   signifRxns:              significance of reaction expression, corresponding to model.rxns.
 
-%% 3. Find matches between model and abundance
-rxnECNumbers = regexp(modelECNumbers, '\<(?!EC:|^\>)([0-9A-Z]+.([0-9A-Z]+.)*([0-9A-Z]|-)+)','match');
-rxnECNumbersLogic = regexp(modelECNumbers, '(\||&)','match');
+%
+% Authors:
+%       - Nicolas Mendoza Mejia, Apr 2020, Abundance mapping for reactions
 
-rxn_n = numel(rxnECNumbers);
-result = cell (rxn_n, 1);
-
-f = waitbar(0,'Procesing','Name','Progress',...
-    'CreateCancelBtn',...
-    'setappdata(gcbf,''canceling'',1)');
-
-setappdata(f,'canceling',0);
-
-for i=1:rxn_n
-    waitbar(i/rxn_n,f,sprintf('%12.0f',floor(i/rxn_n*100)))
-    [Abundance, index] = findAbundances(rxnECNumbers{i}, ProteinECNumbers, ProteinAbundance);
-
-%% 4 and = min,  or = max
-    % Now we have the protein abundance
-    % We need to check wether the logic is and/or to use min/max
-    nLogic = numel(rxnECNumbersLogic{i});
-    nEnzyme = numel(rxnECNumbers{i});
-    if nEnzyme > 1
-        assert(nEnzyme - 1 == nLogic, 'Wrong logic separator for multiple enzymes in model.rxnECNumbers{%i}:%s', i, modelECNumbers{i});
-
-        rxnAbundance = Abundance(1);
-        for j=1:nLogic
-            if rxnECNumbersLogic{i}{j} == '&'
-                rxnAbundance = min(rxnAbundance, Abundance(j + 1));
-            elseif rxnECNumbersLogic{i}{j} == '|'
-                rxnAbundance = max(rxnAbundance, Abundance(j + 1));
-            end
-        end
-
-        result{i} =  rxnAbundance;
-    elseif nEnzyme == 1 && Abundance ~= 0
-        result{i} = Abundance;
-    else 
-        result{i} = -1;
-    end
-    
-    if isnan(result{i})
-        result{i} = -1;
-    end
-    
-end
-delete(f)
+if ~exist('minSum','var')
+    minSum = false;
 end
 
-
-function [abundance, index] = findAbundances(rxnECNumbers, ProteinECNumbers, ProteinAbundance)
-nEnzymeNumbers = numel(rxnECNumbers);
-abundance = zeros(nEnzymeNumbers, 1);
-index = zeros(nEnzymeNumbers, 1);
-
-for i=1:nEnzymeNumbers
-    rxnECNumber = rxnECNumbers{i};
-    %% Find matches
-    if ~contains(rxnECNumbers{i}, ".-")
-        found = cellfun(@(x) strcmp(x, rxnECNumber), ProteinECNumbers, 'UniformOutput', false);
-        match = cellfun(@(c) any(c(:)), found);
-    else
-        rxnECNumber = strrep(rxnECNumber, '.-', '.');
-        found = cellfun(@(x) contains(x, rxnECNumber), ProteinECNumbers, 'UniformOutput', false);
-        match = cellfun(@(c) any(c(:)), found);
-    end
-    %% If there is a match get its info
-    if sum(match) > 0
-        matchInexes = find(match);
-        abundances = ProteinAbundance(match);
-        [abundance(i), localIndex] = max(abundances);
-        index(i) = matchInexes(localIndex);
-    end
+if isfield(abundanceData, 'sig') 
+    exprSigFlag = 1; 
+else
+    exprSigFlag = 0;
 end 
 
-end
+% Extracting GPR data from model
+model = makePrules(model);
+parsedPR = PRparser(model,minSum); % This could be integrated with GPRparser in a function called ruleParser
 
+
+if exprSigFlag == 0
+    % Find wich genes in expression data are used in the model
+    [protein_id, protein_abun] = findUsedLevels(model.ECNumbers,abundanceData); %this can be unified with findUsedGenesLevels
+
+    % Link the gene to the model reactions
+    [abundanceRxns,  proteins_used] = selectGeneFromGPR(model, protein_id, protein_abun, parsedPR, minSum);
+else
+    
+    [protein_id, protein_abun, gene_sig] = findUsedLevels(model, abundanceData);
+    [abundanceRxns,  proteins_used, signifRxns] = selectGeneFromGPR(model, protein_id, protein_abun, parsedPR, minSum, gene_sig);
+    
+end
