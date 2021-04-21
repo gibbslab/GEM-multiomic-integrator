@@ -39,6 +39,12 @@ for i=1:rxn_n
         result{i} =  rxnAbundance;
     elseif nEnzyme == 1 && Abundance ~= 0
         result{i} = Abundance;
+    else 
+        result{i} = -1;
+    end
+    
+    if isnan(result{i})
+        result{i} = -1;
     end
     
 end
@@ -65,7 +71,7 @@ for i=1:nEnzymeNumbers
     %% If there is a match get its info
     if sum(match) > 0
         matchInexes = find(match);
-        abundances = str2double(ProteinAbundance(match));
+        abundances = ProteinAbundance(match);
         [abundance(i), localIndex] = max(abundances);
         index(i) = matchInexes(localIndex);
     end

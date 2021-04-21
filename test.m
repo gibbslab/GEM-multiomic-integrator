@@ -4,7 +4,7 @@ initCobraToolbox(false) % Don't update the toolbox
 changeCobraSolver('glpk', 'all');
 
 %% Import the proteome and the model
-abundance = readtable('sup_material_9.xlsx');
+abundance = readtable('sup_material_8.xlsx');
 load('Recon3D_301.mat')
 
 %% 1. Get the list of ProteinECNumbers
@@ -32,6 +32,7 @@ percent_of_filled = length(N_filled)/length(Recon3D.rxnECNumbers);
 abundance_columns =abundance.Properties.VariableNames;
 FinalAbundances = table();
  for k=2:length(abundance_columns)
+%     abundance.(k) = str2double(abundance.(k));
     rxn_abundances = mapAbundanceToReactions(Recon3D.rxnECNumbers, ProteinECNumbers, abundance.(k));
     FinalAbundances = addvars(FinalAbundances, rxn_abundances);
  end
@@ -67,7 +68,8 @@ for k=3:length(expresion_columns)
     [expressionRxns parsedGPR] = mapExpressionToReactions(Recon3D, expressionToMap);
     FinalExpresion = addvars(FinalExpresion, expressionRxns);
 end
-
+FinalExpresion.Properties.VariableNames = expresion.Properties.VariableNames(3:end);
+FinalAbundances.Properties.VariableNames = abundance.Properties.VariableNames(2:end);
 
 exVal = FinalExpresion{40,[6 7 16 17 26 27]};
 abVal = FinalAbundances(44,[8 9 10 11 12 13]);
