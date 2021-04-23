@@ -85,3 +85,39 @@ scatter(exVal([1 2]), abVal([1 2]))
 hold on
 scatter(exVal([3 4]), abVal([3 4]))
 scatter(exVal([5 6]), abVal([5 6]))
+
+
+values = [FinalExpresion.(7) cell2mat(FinalAbundances.(2))];
+values = values( FinalExpresion.(7) ~= -1 & cell2mat(FinalAbundances.(2)) ~= -1, :);
+labels = Recon3D.rxns( FinalExpresion.(7) ~= -1 & cell2mat(FinalAbundances.(2)) ~= -1);
+Z = zscore(values); % Standardized data
+[coefs,score] = pca(Z);
+h = biplot(coefs(:,1:2),'Scores',score(:,1:2), 'VarLabels', {'expresions', 'abundances'});
+
+
+%%
+NamesIndex = {'pal', 'tib\_pal', 'ctl'};
+AbIndex = {1:6; 7:12; 13:18};
+ExIndex = {[8 7 17 18 27 28]; [6 5 15 16 25 26]; [9 10 19 20 29 30]};
+x =[];
+y=[];
+for j=65%1:numel(Recon3D.rxns)
+    for i=1:2
+        pal_ab_rx1 = cell2mat(FinalAbundances{j,AbIndex{i}});
+        pal_ex_rx1 = FinalExpresion{j,ExIndex{i}};
+        scatter(pal_ab_rx1,pal_ex_rx1)
+        hold on
+        co = corrcoef(pal_ab_rx1,pal_ex_rx1);
+        x = [x(:); pal_ab_rx1(:)];
+        y = [y(:); pal_ex_rx1(:)];
+        if co(1,2) > 0.4 || co(1,2) < -0.4
+            disp({NamesIndex{i} j co(1,2)})
+        end
+    end
+    disp(corrcoef(x,y))
+end
+legend(NamesIndex)
+
+values = [pal_ab_rx1; pal_ex_rx1]';
+
+scatter(pal_ab_rx1,pal_ex_rx1)
