@@ -94,3 +94,12 @@ for i=1:numel(Recon3D.rxns)
         combinedValues(i, :) = pca_scores' * values;
     end
 end
+
+
+
+options.solver = 'iMAT';
+options.expressionRxns = combinedValues(1, :);
+options.threshold_lb = -1000;
+options.threshold_ub = 1000;
+
+astrociteModel = createTissueSpecificModel(Recon3D, options);
