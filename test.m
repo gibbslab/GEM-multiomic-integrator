@@ -28,15 +28,22 @@ Recon3D.rxnECNumbers = strrep(Recon3D.rxnECNumbers,"TCDB:","");
 N_filled = find(~cellfun(@isempty,Recon3D.rxnECNumbers));
 percent_of_filled = length(N_filled)/length(Recon3D.rxnECNumbers);
 
-%% Get reactions abundances
-abundance_columns =abundance.Properties.VariableNames;
+%% Map reactions abundances
+
 FinalAbundances = table();
- for k=2:length(abundance_columns)
-%     abundance.(k) = str2double(abundance.(k));
-    rxn_abundances = mapAbundanceToReactions(Recon3D.rxnECNumbers, ProteinECNumbers, abundance.(k));
-    FinalAbundances = addvars(FinalAbundances, rxn_abundances);
- end
- 
+abundance = addvars(abundance, ProteinECNumbers, 'After', 1);
+for k=3:length(abundance.Properties.VariableNames)
+    abundanceToMap =  abundance(:, [2 k]);
+    abundanceToMap.Properties.VariableNames = {'id' 'value'};
+    
+    % Remove missing values
+    abundanceToMap = rmmissing(abundanceToMap);
+    abundanceToMap = abundanceToMap(~cellfun('isempty', abundanceToMap.id), :);
+    
+    [abundanceRxns parsedPR] = mapAbundanceToReactions(Recon3D, abundanceToMap);
+    FinalAbundances = addvars(FinalAbundances, abundanceRxns);
+end
+
 expresion = readtable('DESeq2_normalised_counts.xls');
 %% 1. Convert Ensembl to Entrez with https://www.ensembl.org/biomart/martview
 f = fopen('mart_export.txt');
@@ -69,12 +76,30 @@ for k=3:length(expresion_columns)
     FinalExpresion = addvars(FinalExpresion, expressionRxns);
 end
 FinalExpresion.Properties.VariableNames = expresion.Properties.VariableNames(3:end);
-FinalAbundances.Properties.VariableNames = abundance.Properties.VariableNames(2:end);
+FinalAbundances.Properties.VariableNames = abundance.Properties.VariableNames(3:end);
 
-exVal = FinalExpresion{40,[6 7 16 17 26 27]};
-abVal = FinalAbundances(44,[8 9 10 11 12 13]);
-abVal =  [27.4479 27.3967 27.2953 27.8241 27.5015 27.5533]
-scatter(exVal([1 2]), abVal([1 2]))
-hold on
-scatter(exVal([3 4]), abVal([3 4]))
-scatter(exVal([5 6]), abVal([5 6]))
+ExIndex = [8 7 17 18 27 28 6 5 15 16 25 26 9 10 19 20 29 30];
+scores = zeros(numel(Recon3D.rxns), 2);
+combinedValues = zeros(numel(Recon3D.rxns), numel(ExIndex));
+for i=1:numel(Recon3D.rxns)
+    expr = table2array(FinalExpresion(i, ExIndex));
+    abun = table2array(FinalAbundances(i, :));
+    values = [expr; abun];
+    [~, pca_scores, ~, ~, var_explained] = pca(values, 'NumComponents', 1);
+    scores(i, :) = pca_scores;
+
+    if pca_scores == 0
+        combinedValues(i, :) = combinedValues(i, :) -1;
+    else 
+        combinedValues(i, :) = pca_scores' * values;
+    end
+end
+
+
+
+options.solver = 'iMAT';
+options.expressionRxns = combinedValues(1, :);
+options.threshold_lb = -1000;
+options.threshold_ub = 1000;
+
+astrociteModel = createTissueSpecificModel(Recon3D, options);
