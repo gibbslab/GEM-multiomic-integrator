@@ -57,7 +57,7 @@ for i = 1:numel(id)
     cur_ID = id{i};
     % Find matches
     if contains(cur_ID, ".-")
-        cur_ID = strrep(cur_ID, '.-', '.');
+        cur_ID = regexprep(cur_ID, '(\.-)+', '.');
         found = cellfun(@(x) contains(x, cur_ID), exprData.id, 'UniformOutput', false);
     else
         found = cellfun(@(x) strcmp(x, cur_ID), exprData.id, 'UniformOutput', false);
