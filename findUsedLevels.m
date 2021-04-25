@@ -76,7 +76,7 @@ for i = 1:numel(id)
         if printLevel > 0
             disp(['Double for ',num2str(cur_ID)])
         end
-        expr(i) = mean(exprData.value(dataID));
+        expr(i) = sum(exprData.value(dataID));
         if exprSigFlag == 1 
             sig(i) = mean(exprData.sig(dataID));
         end 
