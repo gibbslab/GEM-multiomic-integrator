@@ -15,6 +15,14 @@ function model = makePrules(model)
 
 rxnECNumbers = regexp(model.rxnECNumbers, '\<(?!EC:|^\>)([0-9A-Z]+.(([0-9A-Z]|-)+.)*([0-9A-Z]|-)+)','match');
 
+Prules, ECNumbers = makePrulesWithRxnECNumbers(model, rxnECNumbers);
+
+model.Prules = Prules;
+model.ECNumbers = ECNumbers;
+
+end
+
+function [Prules, ECNumbers] = makePrulesWithRxnECNumbers(model, rxnECNumbers)
 nRxns = numel(model.rxns);
 Prules = cell (nRxns, 1);
 ECNumbers = {};
@@ -43,14 +51,12 @@ for i=1:nRxns
         
         % Modify the protein rules
         pattern = regexptranslate('escape',rxnECNumbers{i}{j});
-        replacement = regexptranslate('escape',['x(' num2str(ECNumberIndex) ')']);
+        replacement = ['x(' num2str(ECNumberIndex) ')'];
         Prules{i} = regexprep(Prules{i}, pattern, replacement, 'once');
     end
    
 end
 
-model.Prules = Prules;
-model.ECNumbers = ECNumbers;
-
 end
+
 
