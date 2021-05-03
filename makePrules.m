@@ -1,4 +1,4 @@
-function model = makePrules(model)
+function model = makePrules(model, gECNumbers)
 %makePrules This function takes model.rxnECNumbers and makes a list with
 %the protein rules (model.Prules) and a list of unique EC numbers (model.ECNumbers)
 %
@@ -13,12 +13,41 @@ function model = makePrules(model)
 %
 % AUTHORS: Nicolas Mendoza-Mejia, Apr 2020
 
-rxnECNumbers = regexp(model.rxnECNumbers, '\<(?!EC:|^\>)([0-9A-Z]+.(([0-9A-Z]|-)+.)*([0-9A-Z]|-)+)','match');
+if ~exist('gECNumbers','var')
+    gECNumbersFlag = 0;
+    gECNumbers = model.rxnECNumbers;
+else
+    gECNumbersFlag = 1;
+end
 
-Prules, ECNumbers = makePrulesWithRxnECNumbers(model, rxnECNumbers);
+ecPattern = '\<(?!EC:|^\>)([0-9A-Z]+.(([0-9A-Z]|-)+.)*([0-9A-Z]|-)+)';
+
+
+if gECNumbersFlag
+    parsedECNumbers = regexprep(gECNumbers, ecPattern, 'x($1)');
+    [Prules, ECNumbers] = makePrulesWithGrules(model.rules, parsedECNumbers);
+else
+    parsedECNumbers = regexp(gECNumbers, ecPattern, 'match');
+    [Prules, ECNumbers] = makePrulesWithRxnECNumbers(model, parsedECNumbers);
+end
 
 model.Prules = Prules;
 model.ECNumbers = ECNumbers;
+
+end
+
+function [index, ECList, size] = makeECList(inECNumber, ECList, size)
+
+match = strcmp(inECNumber, ECList);
+
+if isempty(match) || sum(match) == 0 
+    size = size + 1;
+    index = size;
+    % Save in the list of unique ECNumbers
+    ECList{size} = inECNumber;
+else
+    index = find(match);
+end
 
 end
 
@@ -38,16 +67,7 @@ for i=1:nRxns
     end
     
     for j=1:nECNum
-        match = strcmp(rxnECNumbers{i}{j}, ECNumbers);
-        
-        if isempty(match) || sum(match) == 0 
-            sizeEcNumbers = sizeEcNumbers + 1;
-            ECNumberIndex = sizeEcNumbers;
-            % Save in the list of unique ECNumbers
-            ECNumbers{sizeEcNumbers} = rxnECNumbers{i}{j};
-        else
-            ECNumberIndex = find(match);
-        end
+        [ECNumberIndex, ECNumbers, sizeEcNumbers] = makeECList(rxnECNumbers{i}{j}, ECNumbers, sizeEcNumbers);
         
         % Modify the protein rules
         pattern = regexptranslate('escape',rxnECNumbers{i}{j});
@@ -56,6 +76,39 @@ for i=1:nRxns
     end
    
 end
+
+end
+
+function [Prules, ECNumbers] = makePrulesWithGrules(gRules, gECNumbers)
+Prules = gRules;
+ECNumbers = {};
+sizeEcNumbers = 0;
+
+genes = regexp(Prules,'(?<=x\()([0-9]+)(?=\))','match');
+
+for i=1:numel(genes)
+    indexes = unique(str2double(genes{i}));
+    for j=1:numel(indexes)
+        index = indexes(j);
+        pattern = ['x(' num2str(index) ')'];
+        
+        if isempty(gECNumbers{index})
+            % We need to delete the entry and one of the logic characters
+            % around it
+            regExp = regexptranslate('escape', pattern);
+            Prules(i) = regexprep(Prules(i), [regExp ' *[&|] *'], '');
+            Prules(i) = regexprep(Prules(i), ['( *[&|] *)?' regExp], '');
+        else
+            [ECNumberIndex, ECNumbers, sizeEcNumbers] = makeECList(gECNumbers{index}, ECNumbers, sizeEcNumbers);
+             
+            replacement = ['x(' num2str(ECNumberIndex) ')'];
+            Prules(i) = strrep(Prules(i), pattern, replacement);
+        end
+    end
+end
+
+Prules = regexprep(Prules,'((\||&) *\( *\) *)*$',''); % Remove emty parenthesis at the end
+Prules = regexprep(Prules,' *\( *\) *(\||&)?',''); % Remove emty parenthesis at the start and in the midle
 
 end
 
