@@ -28,8 +28,9 @@ Recon3D.rxnECNumbers = strrep(Recon3D.rxnECNumbers,"TCDB:","");
 N_filled = find(~cellfun(@isempty,Recon3D.rxnECNumbers));
 percent_of_filled = length(N_filled)/length(Recon3D.rxnECNumbers);
 
-%% Map reactions abundances
+Recon3D = makePrules(Recon3D);
 
+%% Map reactions abundances
 FinalAbundances = table();
 abundance = addvars(abundance, ProteinECNumbers, 'After', 1);
 for k=3:length(abundance.Properties.VariableNames)
@@ -59,8 +60,6 @@ for i=1:numel(EnsemblIDs)
 end
 expresion = addvars(expresion, EnrezIDs, 'After', 1);
 
-
-
 %% 2. Extract expresions for each reaction
 
 Recon3D.genes = regexprep(Recon3D.genes,"\.[0-9]*","");
@@ -77,29 +76,41 @@ for k=3:length(expresion_columns)
 end
 FinalExpresion.Properties.VariableNames = expresion.Properties.VariableNames(3:end);
 FinalAbundances.Properties.VariableNames = abundance.Properties.VariableNames(3:end);
+FinalExpresion1 = FinalExpresion;
+FinalAbundances1 = FinalAbundances;
 
-ExIndex = [8 7 17 18 27 28 6 5 15 16 25 26 9 10 19 20 29 30];
-scores = zeros(numel(Recon3D.rxns), 2);
-combinedValues = zeros(numel(Recon3D.rxns), numel(ExIndex));
-for i=1:numel(Recon3D.rxns)
-    expr = table2array(FinalExpresion(i, ExIndex));
-    abun = table2array(FinalAbundances(i, :));
-    values = [expr; abun];
-    [~, pca_scores, ~, ~, var_explained] = pca(values, 'NumComponents', 1);
-    scores(i, :) = pca_scores;
-
-    if pca_scores == 0
-        combinedValues(i, :) = combinedValues(i, :) -1;
-    else 
-        combinedValues(i, :) = pca_scores' * values;
-    end
-end
-
-
-
-options.solver = 'iMAT';
-options.expressionRxns = combinedValues(1, :);
-options.threshold_lb = -1000;
-options.threshold_ub = 1000;
-
-astrociteModel = createTissueSpecificModel(Recon3D, options);
+% 
+% X = [FinalAbundances,FinalExpresion];%X = [FinalAbundances,FinalExpresion(:,ExIndex)];
+% Y = table2array(X);
+% Y(Y == -1) = NaN;
+% out = Y(any(~isnan(Y), 2), :);
+% [coeff,pca_scores,latent,tsquared,explained,mu] = pca(out);
+% 
+% ExIndex = [8 7 17 18 27 28 6 5 15 16 25 26 9 10 19 20 29 30];
+% scores = {};
+% combinedValues = zeros(numel(Recon3D.rxns), numel(ExIndex));
+% for i=1:numel(FinalAbundances.Properties.VariableNames)
+%     expr = table2array(FinalExpresion(:,ExIndex(i)));
+%     abun = table2array(FinalAbundances(:, i));
+%     values = [expr, abun];
+%     X = [FinalAbundances,FinalExpresion(:,ExIndex)]
+%     [coeff,pca_scores,latent,tsquared,explained,mu] = pca(table2array(X));
+%     scores{i} = pca_scores;
+% 
+% end
+% 
+% 
+% x = [-0.0678   -0.6460    0.5673    0.5062;
+%    -0.6785   -0.0200   -0.5440    0.4933;
+%     0.0290    0.7553    0.4036    0.5156;
+%     0.7309   -0.1085   -0.4684    0.4844];
+% [coeff,pca_scores,latent,tsquared,explained,mu] = pca(normalize(x));
+% 
+% 
+% 
+% options.solver = 'iMAT';
+% options.expressionRxns = combinedValues(1, :);
+% options.threshold_lb = -1000;
+% options.threshold_ub = 1000;
+% 
+% astrociteModel = createTissueSpecificModel(Recon3D, options);

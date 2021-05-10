@@ -47,7 +47,6 @@ else
 end 
 
 % Extracting GPR data from model
-model = makePrules(model);
 parsedPR = PRparser(model,minSum); % This could be integrated with GPRparser in a function called ruleParser
 
 
