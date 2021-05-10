@@ -84,10 +84,10 @@ Prules = gRules;
 ECNumbers = {};
 sizeEcNumbers = 0;
 
-genes = regexp(Prules,'(?<=x\()([0-9]+)(?=\))','match');
+geneInexes = regexp(gRules,'(?<=x\()([0-9]+)(?=\))','match');
 
-for i=1:numel(genes)
-    indexes = unique(str2double(genes{i}));
+for i=1:numel(geneInexes)
+    indexes = unique(str2double(geneInexes{i}));
     for j=1:numel(indexes)
         index = indexes(j);
         pattern = ['x(' num2str(index) ')'];
@@ -99,9 +99,15 @@ for i=1:numel(genes)
             Prules(i) = regexprep(Prules(i), [regExp ' *[&|] *'], '');
             Prules(i) = regexprep(Prules(i), ['( *[&|] *)?' regExp], '');
         else
-            [ECNumberIndex, ECNumbers, sizeEcNumbers] = makeECList(gECNumbers{index}, ECNumbers, sizeEcNumbers);
-             
-            replacement = ['x(' num2str(ECNumberIndex) ')'];
+            replacement = gECNumbers{index};
+            match = regexp(gECNumbers{index},'(?<=x\().*?(?=\))','match');
+            for k=1:numel(match)
+                [ECNumberIndex, ECNumbers, sizeEcNumbers] = makeECList(match{k}, ECNumbers, sizeEcNumbers);
+                pat = ['x(' ECNumbers{ECNumberIndex} ')'];
+                rep = ['x(' num2str(ECNumberIndex) ')'];
+                replacement = strrep(replacement, pat, rep);
+            end
+            
             Prules(i) = strrep(Prules(i), pattern, replacement);
         end
     end
