@@ -78,7 +78,7 @@ for i = 1:numel(id)
         end
         expr(i) = sum(exprData.value(dataID));
         if exprSigFlag == 1 
-            sig(i) = mean(exprData.sig(dataID));
+            sig(i) = sum(exprData.sig(dataID));
         end 
     end    
 end
