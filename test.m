@@ -1,7 +1,7 @@
 close all force; clear variables; clc
 %% Startup the COBRA Toolbox
 initCobraToolbox(false) % Don't update the toolbox
-changeCobraSolver('glpk', 'all');
+changeCobraSolver ('gurobi', 'all', 1); % For large models
 
 %% Import the proteome and the model
 abundance = readtable('sup_material_8.xlsx');
@@ -60,8 +60,7 @@ for i=1:numel(EnsemblIDs)
 end
 expresion = addvars(expresion, EnrezIDs, 'After', 1);
 
-%% 2. Extract expresions for each reaction
-
+%% Map expresions for each reaction
 Recon3D.genes = regexprep(Recon3D.genes,"\.[0-9]*","");
 
 expresion_columns = expresion.Properties.VariableNames;
@@ -76,41 +75,23 @@ for k=3:length(expresion_columns)
 end
 FinalExpresion.Properties.VariableNames = expresion.Properties.VariableNames(3:end);
 FinalAbundances.Properties.VariableNames = abundance.Properties.VariableNames(3:end);
-FinalExpresion1 = FinalExpresion;
-FinalAbundances1 = FinalAbundances;
 
-% 
-% X = [FinalAbundances,FinalExpresion];%X = [FinalAbundances,FinalExpresion(:,ExIndex)];
-% Y = table2array(X);
-% Y(Y == -1) = NaN;
-% out = Y(any(~isnan(Y), 2), :);
-% [coeff,pca_scores,latent,tsquared,explained,mu] = pca(out);
-% 
-% ExIndex = [8 7 17 18 27 28 6 5 15 16 25 26 9 10 19 20 29 30];
-% scores = {};
-% combinedValues = zeros(numel(Recon3D.rxns), numel(ExIndex));
-% for i=1:numel(FinalAbundances.Properties.VariableNames)
-%     expr = table2array(FinalExpresion(:,ExIndex(i)));
-%     abun = table2array(FinalAbundances(:, i));
-%     values = [expr, abun];
-%     X = [FinalAbundances,FinalExpresion(:,ExIndex)]
-%     [coeff,pca_scores,latent,tsquared,explained,mu] = pca(table2array(X));
-%     scores{i} = pca_scores;
-% 
-% end
-% 
-% 
-% x = [-0.0678   -0.6460    0.5673    0.5062;
-%    -0.6785   -0.0200   -0.5440    0.4933;
-%     0.0290    0.7553    0.4036    0.5156;
-%     0.7309   -0.1085   -0.4684    0.4844];
-% [coeff,pca_scores,latent,tsquared,explained,mu] = pca(normalize(x));
-% 
-% 
-% 
-% options.solver = 'iMAT';
-% options.expressionRxns = combinedValues(1, :);
-% options.threshold_lb = -1000;
-% options.threshold_ub = 1000;
-% 
-% astrociteModel = createTissueSpecificModel(Recon3D, options);
+%% Dimentionality reduction with PCA
+X = [FinalAbundances,FinalExpresion];
+Y = table2array(X);
+Y(Y == -1) = NaN;
+out = normalize(Y(any(~isnan(Y), 2), :));
+[coeff,pca_scores,latent,tsquared,explained,mu] = pca(out);
+reducedDimension = coeff(:,1:2);
+
+out(isnan(out)) = 0;
+reducedFeatureMatrix = (out * reducedDimension) * latent(1:2) / sum(latent(1:2));
+red = ones(size(X,1), 1) * -1;
+red(any(table2array(X) ~= -1, 2)) = reducedFeatureMatrix;
+
+%% Model reduction
+options.solver = 'INIT';
+options.weights = red;
+options.runtime = 14400;
+
+astrociteModel = createTissueSpecificModel(Recon3D, options);
