@@ -1,0 +1,3 @@
+[submodule "cobratoolbox"]
+	path = cobratoolbox
+	url = git@github.com:opencobra/cobratoolbox.git
