@@ -52,7 +52,7 @@ end
 %% Transcriptomic and proteomic data integration
 disp('Integrating Transcriptomic and Proteomic data ...')
 omicIntegratedData = omicIntegrationPCA(abundanceTable, expressionTable);
-omicIntegratedData = log(abs(min(omicIntegratedData)) + omicIntegratedData);
+% omicIntegratedData = log(abs(min(omicIntegratedData)) + omicIntegratedData);
 
 %% Model reconstruction
 disp('Creating macrophage Specific Model ...')
@@ -65,3 +65,13 @@ macrophageModel = createTissueSpecificModel(Recon3D, options);
 macrophageModel.description = 'MendozamacrophageModel';
 macrophageModel.rxnECNumbers = {macrophageModel.rxnECNumbers{:}}';
 save('out/dirtymacrophageModel.mat', 'macrophageModel');
+
+%% Contextualization
+[~,idx] = ismember(macrophageModel.rxns, Recon3D.rxns);
+omicIntegratedDataMacrophage = omicIntegratedData(idx);
+omicIntegratedDataMacrophage(omicIntegratedDataMacrophage == -1) = 0;
+
+model =  exp2flux(macrophageModel, omicIntegratedDataMacrophage);
+
+FBAsolution = optimizeCbModel(model ,'max');
+fprintf("The FBA flux after constrain to DMEM %f\n", FBAsolution.f)
