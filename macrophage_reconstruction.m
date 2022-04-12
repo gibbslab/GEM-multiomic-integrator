@@ -51,7 +51,6 @@ end
 %% Transcriptomic and proteomic data integration
 disp('Integrating Transcriptomic and Proteomic data ...')
 omicIntegratedData = omicIntegrationPCA(abundanceTable, expressionTable);
-% omicIntegratedData = log(abs(min(omicIntegratedData)) + omicIntegratedData);
 
 %% Model reconstruction
 disp('Creating macrophage Specific Model ...')
