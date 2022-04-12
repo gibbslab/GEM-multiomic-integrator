@@ -41,7 +41,6 @@ if isfile(expressionTable_FileName) && isfile(abundanceTable_FileName)
 else
     profile on
     abundanceTable = mapAbundance(Recon3D, abundance, ProteinECNumbers);
-    expresion = EnsemblToEntrez(expresion, 'data/mart_export.txt');
     expressionTable = mapExpression(Recon3D, expresion);
     profile viewer
 
