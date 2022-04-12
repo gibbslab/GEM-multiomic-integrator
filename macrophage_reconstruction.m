@@ -69,9 +69,14 @@ save('out/dirtymacrophageModel.mat', 'macrophageModel');
 %% Contextualization
 [~,idx] = ismember(macrophageModel.rxns, Recon3D.rxns);
 omicIntegratedDataMacrophage = omicIntegratedData(idx);
-omicIntegratedDataMacrophage(omicIntegratedDataMacrophage == -1) = 0;
+omicIntegratedDataMacrophage(omicIntegratedDataMacrophage < 0) = 1000;
 
 model =  exp2flux(macrophageModel, omicIntegratedDataMacrophage);
 
 FBAsolution = optimizeCbModel(model ,'max');
+fprintf("The FBA flux after exp2flux %f\n", FBAsolution.f)
+
+%% Nutrition
+macrophageDMEM = setBoundriesDMEMedium(model);
+FBAsolution = optimizeCbModel(macrophageDMEM ,'max');
 fprintf("The FBA flux after constrain to DMEM %f\n", FBAsolution.f)
